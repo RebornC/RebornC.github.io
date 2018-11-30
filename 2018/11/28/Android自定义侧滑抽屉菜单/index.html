@@ -89,7 +89,7 @@
 <meta property="og:locale" content="zh-Hans">
 <meta property="og:image" content="https://rebornc.github.io/2018/11/28/Android自定义侧滑抽屉菜单/video1gif.gif">
 <meta property="og:image" content="https://rebornc.github.io/2018/11/28/Android自定义侧滑抽屉菜单/video2gif.gif">
-<meta property="og:updated_time" content="2018-11-29T13:16:05.420Z">
+<meta property="og:updated_time" content="2018-11-30T19:22:40.002Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Android自定义侧滑抽屉菜单">
 <meta name="twitter:description" content="项目地址：https://github.com/RebornC/SlidingMenu  预览图 界面布局传统的抽屉菜单一般采取DrawerLayout+Toolbar+NavigationView的布局组合。而为了使菜单栏界面设计更加自由，这儿使用自定义布局来代替NavigationView。在设计布局之前，先在styles.xml中将“DarkActionBar”改为“NoActionBar">
@@ -330,6 +330,20 @@
 <li><a href="https://www.jianshu.com/p/0acc12c29c1b" target="_blank" rel="noopener">https://www.jianshu.com/p/0acc12c29c1b</a></li>
 </ul>
 </blockquote>
+<h3 id="改进：避免fragment重复加载"><a href="#改进：避免fragment重复加载" class="headerlink" title="改进：避免fragment重复加载"></a>改进：避免fragment重复加载</h3><p><code>2018/11/30 Debug</code></p>
+<p>因为之前只是做了个小Demo，今天将其加入项目时，发现在每次切换菜单选项时，主视图内容所在的fragment都需要重新实例化，也就是运行OnCreatVIew()方法。这样就造成了很不好的用户体验。</p>
+<blockquote>
+<ul>
+<li>如果fragment加载内容耗时，在弹出主视图时可能会有菜单滑动卡顿的现象。</li>
+<li>每次重新加载，之前的内容进度消失，体验极其差劲。</li>
+</ul>
+</blockquote>
+<p>之前我们是使用replace()方法来替换fragment，即把容器清空后再进行添加，因此需要重新走一遍新的fragment的生命周期，数据也需重新拉取。而改进的方式是使用add()－hide()－show()。add()即往容器添加fragment，新添加进来的fragment都是可见的（visible），后添加的fragment会展示在先添加的fragment上面，在绘制界面的时候会绘制所有可见的view，因此我们需要利用hide()等方法来避免重叠。切换时，判断该fragment是否已经存在容器中，如果是的话，则hide()当前fragment，则show()该传进来的fragment；如果不存在的话，则先add()后再重复刚刚的步骤。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment">* 切换主视图的fragment，避免重复实例化加载</span></span><br><span class="line"><span class="comment">* <span class="doctag">@param</span> position</span></span><br><span class="line"><span class="comment">*/</span></span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">switchFragment</span><span class="params">(<span class="keyword">int</span> position)</span> </span>&#123;</span><br><span class="line">    Fragment fragment = tabFragments.get(position);</span><br><span class="line">    <span class="keyword">if</span> (currentFragment != fragment) &#123;</span><br><span class="line">        FragmentManager fragmentManager = getSupportFragmentManager();</span><br><span class="line">        FragmentTransaction transaction = fragmentManager.beginTransaction();</span><br><span class="line">        <span class="keyword">if</span> (fragment.isAdded()) &#123;</span><br><span class="line">            transaction.hide(currentFragment)</span><br><span class="line">                    .show(fragment)</span><br><span class="line">                    .commit();</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            transaction.hide(currentFragment)</span><br><span class="line">                    .add(R.id.content_view, fragment)</span><br><span class="line">                    .commit();</span><br><span class="line">        &#125;</span><br><span class="line">        currentFragment = fragment;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>如果想要从源码角度了解replace()、add()两者之间的区别，可以参考下面这篇博客。</p>
+<blockquote>
+<p><a href="https://www.jb51.net/article/103489.htm" target="_blank" rel="noopener">https://www.jb51.net/article/103489.htm</a></p>
+</blockquote>
 
       
     </div>
@@ -497,7 +511,7 @@
             
 
             
-              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#预览图"><span class="nav-number">1.</span> <span class="nav-text">预览图</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#界面布局"><span class="nav-number">2.</span> <span class="nav-text">界面布局</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#菜单侧滑时的监听事件"><span class="nav-number">3.</span> <span class="nav-text">菜单侧滑时的监听事件</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#沉浸式状态栏"><span class="nav-number">4.</span> <span class="nav-text">沉浸式状态栏</span></a></li></ol></div>
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#预览图"><span class="nav-number">1.</span> <span class="nav-text">预览图</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#界面布局"><span class="nav-number">2.</span> <span class="nav-text">界面布局</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#菜单侧滑时的监听事件"><span class="nav-number">3.</span> <span class="nav-text">菜单侧滑时的监听事件</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#沉浸式状态栏"><span class="nav-number">4.</span> <span class="nav-text">沉浸式状态栏</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#改进：避免fragment重复加载"><span class="nav-number">5.</span> <span class="nav-text">改进：避免fragment重复加载</span></a></li></ol></div>
             
 
           </div>
